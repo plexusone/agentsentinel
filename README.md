@@ -1,5 +1,13 @@
 # AgentSentinel
 
+[![Go CI][go-ci-svg]][go-ci-url]
+[![Go Lint][go-lint-svg]][go-lint-url]
+[![Go SAST][go-sast-svg]][go-sast-url]
+[![Go Report Card][goreport-svg]][goreport-url]
+[![Docs][docs-godoc-svg]][docs-godoc-url]
+[![Visualization][viz-svg]][viz-url]
+[![License][license-svg]][license-url]
+
 Auto-approve tool requests for AI coding CLIs running in tmux.
 
 AgentSentinel monitors tmux panes for tool approval prompts from AI coding assistants and automatically responds with `y` to approve them. Designed for macOS with iTerm2 and tmux.
@@ -134,8 +142,8 @@ AgentSentinel communicates with tmux via commands (`tmux list-panes`, `tmux send
 Running multiple AI agents with AgentSentinel in a dedicated pane:
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│ iTerm2                                                  │
+┌────────────────────────────────────────────────────────┐
+│ iTerm2                                                 │
 │ ┌─────────────────────┬─────────────────────┐          │
 │ │ tmux pane 1         │ tmux pane 2         │          │
 │ │ $ kiro              │ $ claude            │          │
@@ -154,7 +162,7 @@ Running multiple AI agents with AgentSentinel in a dedicated pane:
 │ │ INFO prompt detected pane=%1 type=Approve │          │
 │ │ INFO approved pane=%1                     │          │
 │ └───────────────────────────────────────────┘          │
-└─────────────────────────────────────────────────────────┘
+└────────────────────────────────────────────────────────┘
 ```
 
 ### Multi-Agent Workflows
@@ -447,3 +455,20 @@ go build -o agentsentinel .
 ## License
 
 MIT
+
+ [go-ci-svg]: https://github.com/plexusone/agentsentinel/actions/workflows/go-ci.yaml/badge.svg?branch=main
+ [go-ci-url]: https://github.com/plexusone/agentsentinel/actions/workflows/go-ci.yaml
+ [go-lint-svg]: https://github.com/plexusone/agentsentinel/actions/workflows/go-lint.yaml/badge.svg?branch=main
+ [go-lint-url]: https://github.com/plexusone/agentsentinel/actions/workflows/go-lint.yaml
+ [go-sast-svg]: https://github.com/plexusone/agentsentinel/actions/workflows/go-sast-codeql.yaml/badge.svg?branch=main
+ [go-sast-url]: https://github.com/plexusone/agentsentinel/actions/workflows/go-sast-codeql.yaml
+ [goreport-svg]: https://goreportcard.com/badge/github.com/plexusone/agentsentinel
+ [goreport-url]: https://goreportcard.com/report/github.com/plexusone/agentsentinel
+ [docs-godoc-svg]: https://pkg.go.dev/badge/github.com/plexusone/agentsentinel
+ [docs-godoc-url]: https://pkg.go.dev/github.com/plexusone/agentsentinel
+ [viz-svg]: https://img.shields.io/badge/visualizaton-Go-blue.svg
+ [viz-url]: https://mango-dune-07a8b7110.1.azurestaticapps.net/?repo=plexusone%2Fagentsentinel
+ [loc-svg]: https://tokei.rs/b1/github/plexusone/agentsentinel
+ [repo-url]: https://github.com/plexusone/agentsentinel
+ [license-svg]: https://img.shields.io/badge/license-MIT-blue.svg
+ [license-url]: https://github.com/plexusone/agentsentinel/blob/master/LICENSE
