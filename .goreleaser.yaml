@@ -1,0 +1,69 @@
+version: 2
+
+project_name: agentsentinel
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: agentsentinel
+    main: .
+    binary: agentsentinel
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/plexusone/agentsentinel/cmd.Version={{.Version}}
+
+archives:
+  - id: default
+    formats:
+      - tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "Merge pull request"
+      - "Merge branch"
+
+release:
+  github:
+    owner: plexusone
+    name: agentsentinel
+  draft: false
+  prerelease: auto
+
+brews:
+  - name: agentsentinel
+    repository:
+      owner: plexusone
+      name: homebrew-tap
+    directory: Formula
+    homepage: "https://github.com/plexusone/agentsentinel"
+    description: "Auto-approve tool requests for AI coding CLIs running in tmux"
+    license: "MIT"
+    install: |
+      bin.install "agentsentinel"
+    test: |
+      system "#{bin}/agentsentinel", "version"
