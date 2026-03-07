@@ -1,0 +1,50 @@
+{
+  "irVersion": "1.0",
+  "project": "agentsentinel",
+  "repository": "https://github.com/plexusone/agentsentinel",
+  "versioning": "semver",
+  "commitConvention": "conventional",
+  "maintainers": ["johncwang@gmail.com"],
+  "releases": [
+    {
+      "version": "v0.1.0",
+      "date": "2026-03-07",
+      "highlights": [
+        { "description": "Auto-approve tool requests for AI coding CLIs (Kiro, Claude Code, Codex, Gemini) running in tmux" }
+      ],
+      "added": [
+        { "description": "`watch` command to monitor tmux panes for tool approval prompts and auto-approve them" },
+        { "description": "`status` command to display tmux environment and available panes" },
+        { "description": "`test` command to verify prompt detection patterns are working" },
+        { "description": "`config` command group for configuration management (path, show, init, example)" },
+        { "description": "`stats` command to track approval statistics during watch sessions" },
+        { "description": "`version` command to display build information" },
+        { "description": "Support for AWS Kiro CLI approval prompts (`tool use ... requires approval, press 'y' to approve`)" },
+        { "description": "Support for Claude Code approval prompts (`Allow? (Y/n)`, `Allow once`)" },
+        { "description": "Support for Codex CLI approval prompts (`Proceed? (Y/n)`)" },
+        { "description": "Support for Gemini CLI approval prompts (`(Y/n)` prompts)" },
+        { "description": "Dangerous command blocking for `rm -rf`, `sudo rm`, `mkfs`, `dd if=`, `curl|bash`, `wget|sh`, `chmod -R 777 /`" },
+        { "description": "Dry-run mode (`--dry-run`) to test detection without sending approvals" },
+        { "description": "Configurable scan interval (`--interval`) for responsive approval" },
+        { "description": "Session filtering (`--session`) to watch specific tmux sessions" },
+        { "description": "Verbose logging (`-v/--verbose`) for debugging" },
+        { "description": "macOS notifications support (`--notify`) for approval events" },
+        { "description": "Statistics tracking (`--stats`) with session summaries" },
+        { "description": "Duplicate approval prevention to avoid multiple keystrokes" },
+        { "description": "YAML configuration file support (`~/.agentsentinel.yaml`)" },
+        { "description": "Custom pattern configuration for additional prompt formats" },
+        { "description": "Shell completion scripts for bash, zsh, and fish" }
+      ],
+      "documentation": [
+        { "description": "Comprehensive README with quick start guide and multi-agent workflow examples" },
+        { "description": "Configuration file documentation with full example" },
+        { "description": "Troubleshooting guide for common issues" }
+      ],
+      "build": [
+        { "description": "GoReleaser configuration for multi-platform binary releases" },
+        { "description": "GitHub Actions CI workflow for testing and linting" },
+        { "description": "Makefile with build, test, lint, and install targets" }
+      ]
+    }
+  ]
+}
