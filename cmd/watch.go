@@ -269,17 +269,29 @@ func (w *watcher) scan() error {
 		}
 
 		if w.dryRun {
-			w.logger.Info("dry run: would approve", "pane", paneID)
+			w.logger.Info("dry run: would approve", "pane", paneID, "count", detection.Count)
 			w.markApproved(paneID)
 			continue
 		}
 
-		if err := w.client.Approve(paneID); err != nil {
-			w.logger.Error("failed to approve", "pane", paneID, "error", err)
-			continue
+		// Handle multi-subagent approval (e.g., Kiro with 4 concurrent subagents)
+		if detection.Count > 1 {
+			w.logger.Info("multi-subagent detected, approving all",
+				"pane", paneID,
+				"count", detection.Count,
+			)
+			if err := w.client.ApproveMultiple(paneID, detection.Count, 150); err != nil {
+				w.logger.Error("failed to approve multiple", "pane", paneID, "error", err)
+				continue
+			}
+		} else {
+			if err := w.client.Approve(paneID); err != nil {
+				w.logger.Error("failed to approve", "pane", paneID, "error", err)
+				continue
+			}
 		}
 
-		w.logger.Info("approved", "pane", paneID)
+		w.logger.Info("approved", "pane", paneID, "count", detection.Count)
 		w.markApproved(paneID)
 		w.stats.RecordApproval(paneID, detection.Type.String(), detection.Line, false)
 		if err := w.notifier.NotifyApproval(paneID, detection.Type.String()); err != nil {

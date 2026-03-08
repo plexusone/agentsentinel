@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Pane represents a tmux pane.
@@ -137,6 +138,45 @@ func (c *Client) SendKeysLiteral(paneID string, text string) error {
 // Approve sends 'y' followed by Enter to a pane.
 func (c *Client) Approve(paneID string) error {
 	return c.SendKeys(paneID, "y", "Enter")
+}
+
+// ApproveMultiple approves multiple prompts in a Kiro-style multi-subagent TUI.
+// It sends 'y' to approve each prompt and 'j' to navigate to the next one.
+// The delay parameter specifies the delay between keystrokes in milliseconds.
+func (c *Client) ApproveMultiple(paneID string, count int, delayMs int) error {
+	if count <= 0 {
+		return nil
+	}
+
+	for i := 0; i < count; i++ {
+		// Send 'y' to approve current prompt
+		if err := c.SendKeys(paneID, "y"); err != nil {
+			return fmt.Errorf("failed to approve prompt %d: %w", i+1, err)
+		}
+
+		// If not the last prompt, navigate down to the next one
+		if i < count-1 {
+			// Small delay to let the UI update
+			if delayMs > 0 {
+				sleepMs(delayMs)
+			}
+			if err := c.SendKeys(paneID, "j"); err != nil {
+				return fmt.Errorf("failed to navigate to next prompt: %w", err)
+			}
+			if delayMs > 0 {
+				sleepMs(delayMs)
+			}
+		}
+	}
+
+	return nil
+}
+
+// sleepMs sleeps for the specified number of milliseconds.
+func sleepMs(ms int) {
+	if ms > 0 {
+		time.Sleep(time.Duration(ms) * time.Millisecond)
+	}
 }
 
 // GetCurrentSession returns the current tmux session name.

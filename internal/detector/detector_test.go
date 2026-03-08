@@ -160,6 +160,60 @@ func TestDetector_AddDangerPattern(t *testing.T) {
 	}
 }
 
+func TestDetector_MultiSubagentCount(t *testing.T) {
+	d := NewDetector()
+
+	tests := []struct {
+		name      string
+		input     string
+		wantCount int
+	}{
+		{
+			name:      "Single Kiro prompt",
+			input:     "↳ tool use read requires approval, press 'y' to approve and 'n' to deny",
+			wantCount: 1,
+		},
+		{
+			name: "Four Kiro subagents",
+			input: `! kiro_default: Analyze batch_0001.json
+↳ tool use read requires approval, press 'y' to approve and 'n' to deny
+
+! kiro_default: Analyze batch_0002.json
+→ ↳ tool use write requires approval, press 'y' to approve and 'n' to deny
+
+! kiro_default: Analyze batch_0003.json
+↳ tool use read requires approval, press 'y' to approve and 'n' to deny
+
+! kiro_default: Analyze batch_0004.json
+↳ tool use read requires approval, press 'y' to approve and 'n' to deny`,
+			wantCount: 4,
+		},
+		{
+			name: "Two Kiro subagents",
+			input: `↳ tool use read requires approval, press 'y' to approve
+↳ tool use write requires approval, press 'y' to approve`,
+			wantCount: 2,
+		},
+		{
+			name:      "Non-Kiro prompt",
+			input:     "Allow? (Y/n)",
+			wantCount: 1, // Default to 1 for non-Kiro prompts
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			detection := d.Detect(tt.input)
+			if detection == nil {
+				t.Fatal("expected detection")
+			}
+			if detection.Count != tt.wantCount {
+				t.Errorf("Detect().Count = %d, want %d", detection.Count, tt.wantCount)
+			}
+		})
+	}
+}
+
 func TestPromptType_String(t *testing.T) {
 	tests := []struct {
 		pt   PromptType

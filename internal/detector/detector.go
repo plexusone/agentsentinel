@@ -23,6 +23,7 @@ type Detection struct {
 	Line    string
 	PaneID  string
 	Blocked bool // true if this appears to be a dangerous command
+	Count   int  // number of pending prompts (for multi-subagent scenarios)
 }
 
 // Detector scans text for tool approval prompts.
@@ -84,6 +85,9 @@ func NewDetector() *Detector {
 	}
 }
 
+// kiroMultiPromptPattern matches Kiro's multi-subagent approval prompts
+var kiroMultiPromptPattern = regexp.MustCompile(`(?i)tool\s+use\s+\w+\s+requires\s+approval.*press\s+'y'\s+to\s+approve`)
+
 // Detect scans the given text for tool prompts.
 func (d *Detector) Detect(text string) *Detection {
 	lines := strings.Split(text, "\n")
@@ -93,6 +97,9 @@ func (d *Detector) Detect(text string) *Detection {
 	if len(lines) > 30 {
 		start = len(lines) - 30
 	}
+
+	// First, count Kiro multi-subagent prompts
+	kiroCount := d.countKiroPrompts(text)
 
 	for i := len(lines) - 1; i >= start; i-- {
 		line := strings.TrimSpace(lines[i])
@@ -111,6 +118,7 @@ func (d *Detector) Detect(text string) *Detection {
 					Type:    d.classifyPrompt(line),
 					Line:    line,
 					Blocked: d.isDangerous(text),
+					Count:   max(1, kiroCount), // At least 1, or the Kiro count
 				}
 				return detection
 			}
@@ -118,6 +126,12 @@ func (d *Detector) Detect(text string) *Detection {
 	}
 
 	return nil
+}
+
+// countKiroPrompts counts the number of Kiro-style multi-subagent approval prompts.
+func (d *Detector) countKiroPrompts(text string) int {
+	matches := kiroMultiPromptPattern.FindAllString(text, -1)
+	return len(matches)
 }
 
 // isLogLine returns true if the line looks like log output (not a real prompt).
