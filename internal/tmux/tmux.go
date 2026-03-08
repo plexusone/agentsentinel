@@ -141,31 +141,38 @@ func (c *Client) Approve(paneID string) error {
 }
 
 // ApproveMultiple approves multiple prompts in a Kiro-style multi-subagent TUI.
-// It sends 'y' to approve each prompt and 'j' to navigate to the next one.
+// It sends 'y' to approve and 'j' to navigate down, cycling through all items.
+// Since we don't know the starting position and 'j' wraps/cycles, we do
+// count+1 iterations of y+j to ensure all items are covered regardless of
+// where the cursor starts.
 // The delay parameter specifies the delay between keystrokes in milliseconds.
 func (c *Client) ApproveMultiple(paneID string, count int, delayMs int) error {
 	if count <= 0 {
 		return nil
 	}
 
-	for i := 0; i < count; i++ {
-		// Send 'y' to approve current prompt
+	// Do count+1 iterations to ensure full coverage regardless of starting position
+	// Since 'j' cycles/wraps, this is safe and ensures we hit all items
+	iterations := count + 1
+
+	for i := 0; i < iterations; i++ {
+		// Send 'y' to approve current prompt (no-op if already completed)
 		if err := c.SendKeys(paneID, "y"); err != nil {
 			return fmt.Errorf("failed to approve prompt %d: %w", i+1, err)
 		}
 
-		// If not the last prompt, navigate down to the next one
-		if i < count-1 {
-			// Small delay to let the UI update
-			if delayMs > 0 {
-				sleepMs(delayMs)
-			}
-			if err := c.SendKeys(paneID, "j"); err != nil {
-				return fmt.Errorf("failed to navigate to next prompt: %w", err)
-			}
-			if delayMs > 0 {
-				sleepMs(delayMs)
-			}
+		// Small delay to let the UI update
+		if delayMs > 0 {
+			sleepMs(delayMs)
+		}
+
+		// Navigate down to the next one (wraps around)
+		if err := c.SendKeys(paneID, "j"); err != nil {
+			return fmt.Errorf("failed to navigate to next prompt: %w", err)
+		}
+
+		if delayMs > 0 {
+			sleepMs(delayMs)
 		}
 	}
 

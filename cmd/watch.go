@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -274,9 +275,25 @@ func (w *watcher) scan() error {
 			continue
 		}
 
-		// Handle multi-subagent approval (e.g., Kiro with 4 concurrent subagents)
-		if detection.Count > 1 {
-			w.logger.Info("multi-subagent detected, approving all",
+		// Handle Kiro-style prompts with multi-subagent TUI navigation
+		// Even if count=1, use ApproveMultiple to cycle through in case cursor
+		// isn't on the pending item. Use minimum of 4 cycles for Kiro prompts.
+		if detection.Type == detector.PromptApprove && isKiroPrompt(detection.Line) {
+			cycleCount := detection.Count
+			if cycleCount < 4 {
+				cycleCount = 4 // Kiro typically runs 4 subagents
+			}
+			w.logger.Info("kiro multi-subagent detected, cycling through all",
+				"pane", paneID,
+				"detected", detection.Count,
+				"cycles", cycleCount,
+			)
+			if err := w.client.ApproveMultiple(paneID, cycleCount, 100); err != nil {
+				w.logger.Error("failed to approve multiple", "pane", paneID, "error", err)
+				continue
+			}
+		} else if detection.Count > 1 {
+			w.logger.Info("multi-prompt detected, approving all",
 				"pane", paneID,
 				"count", detection.Count,
 			)
@@ -334,4 +351,11 @@ func truncate(s string, maxLen int) string {
 		return s
 	}
 	return s[:maxLen-3] + "..."
+}
+
+// isKiroPrompt checks if the line matches Kiro's approval prompt format.
+func isKiroPrompt(line string) bool {
+	return strings.Contains(line, "tool use") &&
+		strings.Contains(line, "requires approval") &&
+		strings.Contains(line, "press 'y' to approve")
 }
