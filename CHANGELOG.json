@@ -10,7 +10,8 @@
       "version": "v0.1.0",
       "date": "2026-03-07",
       "highlights": [
-        { "description": "Auto-approve tool requests for AI coding CLIs (Kiro, Claude Code, Codex, Gemini) running in tmux" }
+        { "description": "Auto-approve tool requests for AI coding CLIs (Kiro, Claude Code, Codex, Gemini) running in tmux" },
+        { "description": "Kiro multi-subagent support - automatically cycles through and approves all concurrent subagents" }
       ],
       "added": [
         { "description": "`watch` command to monitor tmux panes for tool approval prompts and auto-approve them", "commit": "cd362d9" },
@@ -23,6 +24,9 @@
         { "description": "Support for Claude Code approval prompts (`Allow? (Y/n)`, `Allow once`)", "commit": "cd362d9" },
         { "description": "Support for Codex CLI approval prompts (`Proceed? (Y/n)`)", "commit": "cd362d9" },
         { "description": "Support for Gemini CLI approval prompts (`(Y/n)` prompts)", "commit": "cd362d9" },
+        { "description": "Kiro multi-subagent TUI support with automatic cycling through all pending approvals", "commit": "86b4379" },
+        { "description": "Detection count for multiple concurrent approval prompts in same pane", "commit": "86b4379" },
+        { "description": "`ApproveMultiple()` function for navigating and approving multiple prompts", "commit": "86b4379" },
         { "description": "Dangerous command blocking for `rm -rf`, `sudo rm`, `mkfs`, `dd if=`, `curl|bash`, `wget|sh`, `chmod -R 777 /`", "commit": "cd362d9" },
         { "description": "Dry-run mode (`--dry-run`) to test detection without sending approvals", "commit": "cd362d9" },
         { "description": "Configurable scan interval (`--interval`) for responsive approval", "commit": "cd362d9" },
@@ -35,6 +39,9 @@
         { "description": "Custom pattern configuration for additional prompt formats", "commit": "cd362d9" },
         { "description": "Shell completion scripts for bash, zsh, and fish", "commit": "cd362d9" }
       ],
+      "fixed": [
+        { "description": "Kiro multi-subagent cycling now covers all items regardless of cursor starting position", "commit": "6ea6369" }
+      ],
       "documentation": [
         { "description": "Comprehensive README with quick start guide and multi-agent workflow examples", "commit": "3305791" },
         { "description": "Configuration file documentation with full example", "commit": "3305791" },
@@ -44,6 +51,9 @@
         { "description": "GoReleaser configuration for multi-platform binary releases", "commit": "77ca6fa" },
         { "description": "GitHub Actions CI workflow for testing and linting", "commit": "77ca6fa" },
         { "description": "Makefile with build, test, lint, and install targets", "commit": "77ca6fa" }
+      ],
+      "tests": [
+        { "description": "Multi-subagent count detection test cases", "commit": "86b4379" }
       ]
     }
   ]
