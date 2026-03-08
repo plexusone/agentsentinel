@@ -9,6 +9,7 @@ AgentSentinel v0.1.0 is the initial release of the tmux-based auto-approval tool
 ## Highlights
 
 - **Multi-CLI Support** - Works with AWS Kiro CLI, Claude Code, Codex CLI, and Gemini CLI
+- **Kiro Multi-Subagent Support** - Automatically cycles through and approves all concurrent Kiro subagents in a single pane using TUI navigation (y+j)
 - **Safety First** - Built-in dangerous command blocking prevents auto-approval of destructive operations
 - **Multi-Agent Ready** - Monitor all tmux panes simultaneously for parallel AI agent workflows
 

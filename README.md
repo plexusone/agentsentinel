@@ -167,7 +167,12 @@ Running multiple AI agents with AgentSentinel in a dedicated pane:
 
 ### Multi-Agent Workflows
 
-AgentSentinel handles multiple concurrent agents. When running 4+ subagents (like Kiro's parallel execution), it monitors all panes and approves whichever one has a pending prompt.
+AgentSentinel handles multiple concurrent agents across different panes. It also supports **Kiro's multi-subagent TUI** where multiple subagents run in the same pane with a navigable approval list.
+
+When Kiro runs 4 concurrent subagents, AgentSentinel automatically:
+1. Detects multiple pending approval prompts in the same pane
+2. Cycles through all items using `y` (approve) + `j` (navigate down)
+3. Covers all pending approvals regardless of cursor starting position
 
 ```bash
 # Watch all tmux sessions and panes
@@ -396,7 +401,10 @@ stats:
 3. **Pattern Matching** - Scans for approval prompts using regex patterns
 4. **Keystroke Injection** - Sends `y` + Enter via `tmux send-keys`
 
-This approach is more reliable than arrow-key navigation because it directly targets the correct pane regardless of UI layout.
+For **Kiro multi-subagent TUI**, the workflow is different:
+1. **Multi-Prompt Detection** - Counts concurrent `tool use ... requires approval` prompts
+2. **TUI Navigation** - Sends `y` (approve) + `j` (down) to cycle through all items
+3. **Full Coverage** - Performs count+1 iterations to ensure all items are approved regardless of cursor position
 
 ## Detected Patterns
 
