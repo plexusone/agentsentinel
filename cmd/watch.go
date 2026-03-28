@@ -1,20 +1,23 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
+	"github.com/grokify/mogo/log/slogutil"
+	"github.com/lmittmann/tint"
 	"github.com/plexusone/agentsentinel/internal/config"
 	"github.com/plexusone/agentsentinel/internal/detector"
 	"github.com/plexusone/agentsentinel/internal/notify"
 	"github.com/plexusone/agentsentinel/internal/stats"
 	"github.com/plexusone/agentsentinel/internal/tmux"
+	"github.com/plexusone/agentsentinel/internal/watcher"
 	"github.com/spf13/cobra"
 )
 
@@ -26,6 +29,7 @@ var (
 	watchLines       int
 	watchStats       bool
 	watchNotify      bool
+	watchLogLevel    string
 )
 
 var watchCmd = &cobra.Command{
@@ -80,20 +84,8 @@ func init() {
 		"enable statistics tracking")
 	watchCmd.Flags().BoolVar(&watchNotify, "notify", false,
 		"enable macOS notifications")
-}
-
-type watcher struct {
-	client      *tmux.Client
-	detector    *detector.Detector
-	logger      *slog.Logger
-	notifier    *notify.Notifier
-	stats       *stats.Stats
-	dryRun      bool
-	blockDanger bool
-
-	// Track recently approved panes to avoid duplicate approvals
-	recentMu       sync.Mutex
-	recentApproved map[string]time.Time
+	watchCmd.Flags().StringVarP(&watchLogLevel, "level", "l", "info",
+		"log level (debug, info, warn, error)")
 }
 
 func runWatch(cmd *cobra.Command, args []string) error {
@@ -125,14 +117,22 @@ func runWatch(cmd *cobra.Command, args []string) error {
 		watchNotify = cfg.Notifications.Enabled
 	}
 
-	logLevel := slog.LevelInfo
-	if verbose {
+	logLevel, err := parseLogLevel(watchLogLevel)
+	if err != nil {
+		return fmt.Errorf("invalid log level %q: %w", watchLogLevel, err)
+	}
+	// --verbose is a shortcut for --level debug
+	if verbose && !cmd.Flags().Changed("level") {
 		logLevel = slog.LevelDebug
 	}
 
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: logLevel,
+	logger := slog.New(tint.NewHandler(os.Stdout, &tint.Options{
+		Level:      logLevel,
+		TimeFormat: "15:04:05",
 	}))
+
+	// Create context with logger for propagation
+	ctx := slogutil.ContextWithLogger(context.Background(), logger)
 
 	client := tmux.NewClient(watchSession)
 
@@ -162,7 +162,6 @@ func runWatch(cmd *cobra.Command, args []string) error {
 
 	// Create stats tracker
 	st := stats.New()
-	st.SetLogger(logger)
 	if watchStats && cfg.Stats.LogFile != "" {
 		if err := st.SetLogFile(cfg.Stats.LogFile); err != nil {
 			logger.Warn("failed to open stats log file", "error", err)
@@ -183,16 +182,12 @@ func runWatch(cmd *cobra.Command, args []string) error {
 		"notify", watchNotify,
 	)
 
-	w := &watcher{
-		client:         client,
-		detector:       det,
-		logger:         logger,
-		notifier:       notifier,
-		stats:          st,
-		dryRun:         watchDryRun,
-		blockDanger:    watchBlockDanger,
-		recentApproved: make(map[string]time.Time),
-	}
+	// Create watcher with extracted logic
+	w := watcher.New(client, det, notifier, st, watcher.Config{
+		Lines:       watchLines,
+		DryRun:      watchDryRun,
+		BlockDanger: watchBlockDanger,
+	})
 
 	// Handle graceful shutdown
 	sigChan := make(chan os.Signal, 1)
@@ -206,7 +201,7 @@ func runWatch(cmd *cobra.Command, args []string) error {
 	for {
 		select {
 		case <-ticker.C:
-			if err := w.scan(); err != nil {
+			if err := w.Scan(ctx); err != nil {
 				logger.Error("scan error", "error", err)
 			}
 		case sig := <-sigChan:
@@ -224,138 +219,18 @@ func runWatch(cmd *cobra.Command, args []string) error {
 	}
 }
 
-func (w *watcher) scan() error {
-	panes, err := w.client.ListPanes()
-	if err != nil {
-		return err
+// parseLogLevel converts a string log level to slog.Level.
+func parseLogLevel(level string) (slog.Level, error) {
+	switch strings.ToLower(strings.TrimSpace(level)) {
+	case "debug":
+		return slog.LevelDebug, nil
+	case "info":
+		return slog.LevelInfo, nil
+	case "warn", "warning":
+		return slog.LevelWarn, nil
+	case "error":
+		return slog.LevelError, nil
+	default:
+		return slog.LevelInfo, fmt.Errorf("unknown level: %s (valid: debug, info, warn, error)", level)
 	}
-
-	w.logger.Debug("scanning panes", "count", len(panes))
-	w.stats.RecordScan()
-
-	for _, paneID := range panes {
-		if w.wasRecentlyApproved(paneID) {
-			continue
-		}
-
-		content, err := w.client.CapturePane(paneID, watchLines)
-		if err != nil {
-			w.logger.Debug("failed to capture pane", "pane", paneID, "error", err)
-			continue
-		}
-
-		detection := w.detector.Detect(content)
-		if detection == nil {
-			continue
-		}
-
-		detection.PaneID = paneID
-
-		w.logger.Info("prompt detected",
-			"pane", paneID,
-			"type", detection.Type.String(),
-			"line", truncate(detection.Line, 60),
-			"blocked", detection.Blocked,
-		)
-
-		if detection.Blocked && w.blockDanger {
-			w.logger.Warn("dangerous command detected, skipping auto-approval",
-				"pane", paneID,
-			)
-			w.stats.RecordApproval(paneID, detection.Type.String(), detection.Line, true)
-			if err := w.notifier.NotifyBlocked(paneID); err != nil {
-				w.logger.Warn("failed to send notification", "error", err)
-			}
-			continue
-		}
-
-		if w.dryRun {
-			w.logger.Info("dry run: would approve", "pane", paneID, "count", detection.Count)
-			w.markApproved(paneID)
-			continue
-		}
-
-		// Handle Kiro-style prompts with multi-subagent TUI navigation
-		// Even if count=1, use ApproveMultiple to cycle through in case cursor
-		// isn't on the pending item. Use minimum of 4 cycles for Kiro prompts.
-		if detection.Type == detector.PromptApprove && isKiroPrompt(detection.Line) {
-			cycleCount := detection.Count
-			if cycleCount < 4 {
-				cycleCount = 4 // Kiro typically runs 4 subagents
-			}
-			w.logger.Info("kiro multi-subagent detected, cycling through all",
-				"pane", paneID,
-				"detected", detection.Count,
-				"cycles", cycleCount,
-			)
-			if err := w.client.ApproveMultiple(paneID, cycleCount, 100); err != nil {
-				w.logger.Error("failed to approve multiple", "pane", paneID, "error", err)
-				continue
-			}
-		} else if detection.Count > 1 {
-			w.logger.Info("multi-prompt detected, approving all",
-				"pane", paneID,
-				"count", detection.Count,
-			)
-			if err := w.client.ApproveMultiple(paneID, detection.Count, 150); err != nil {
-				w.logger.Error("failed to approve multiple", "pane", paneID, "error", err)
-				continue
-			}
-		} else {
-			if err := w.client.Approve(paneID); err != nil {
-				w.logger.Error("failed to approve", "pane", paneID, "error", err)
-				continue
-			}
-		}
-
-		w.logger.Info("approved", "pane", paneID, "count", detection.Count)
-		w.markApproved(paneID)
-		w.stats.RecordApproval(paneID, detection.Type.String(), detection.Line, false)
-		if err := w.notifier.NotifyApproval(paneID, detection.Type.String()); err != nil {
-			w.logger.Warn("failed to send notification", "error", err)
-		}
-	}
-
-	return nil
-}
-
-func (w *watcher) wasRecentlyApproved(paneID string) bool {
-	w.recentMu.Lock()
-	defer w.recentMu.Unlock()
-
-	if t, ok := w.recentApproved[paneID]; ok {
-		// Don't re-approve within 5 seconds
-		if time.Since(t) < 5*time.Second {
-			return true
-		}
-	}
-	return false
-}
-
-func (w *watcher) markApproved(paneID string) {
-	w.recentMu.Lock()
-	defer w.recentMu.Unlock()
-
-	w.recentApproved[paneID] = time.Now()
-
-	// Clean up old entries
-	for id, t := range w.recentApproved {
-		if time.Since(t) > 30*time.Second {
-			delete(w.recentApproved, id)
-		}
-	}
-}
-
-func truncate(s string, maxLen int) string {
-	if len(s) <= maxLen {
-		return s
-	}
-	return s[:maxLen-3] + "..."
-}
-
-// isKiroPrompt checks if the line matches Kiro's approval prompt format.
-func isKiroPrompt(line string) bool {
-	return strings.Contains(line, "tool use") &&
-		strings.Contains(line, "requires approval") &&
-		strings.Contains(line, "press 'y' to approve")
 }

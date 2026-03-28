@@ -1,6 +1,10 @@
+// Package stats provides statistics tracking for AgentSentinel approval events.
+// It tracks counts by pane and prompt type, maintains recent approval history,
+// and optionally logs approvals to a JSON file.
 package stats
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -8,9 +12,11 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/grokify/mogo/log/slogutil"
 )
 
-// Approval represents a single approval event.
+// Approval represents a single approval event recorded by the watcher.
 type Approval struct {
 	Timestamp time.Time `json:"timestamp"`
 	PaneID    string    `json:"pane_id"`
@@ -19,10 +25,10 @@ type Approval struct {
 	Blocked   bool      `json:"blocked"`
 }
 
-// Stats tracks approval statistics.
+// Stats tracks approval statistics with thread-safe counters and optional JSON logging.
+// It implements the watcher.StatsRecorder interface.
 type Stats struct {
-	mu     sync.Mutex
-	logger *slog.Logger
+	mu sync.Mutex
 
 	// Counters
 	TotalApprovals int `json:"total_approvals"`
@@ -48,19 +54,11 @@ type Stats struct {
 // New creates a new Stats tracker.
 func New() *Stats {
 	return &Stats{
-		logger:          slog.Default(),
 		ApprovalsByPane: make(map[string]int),
 		ApprovalsByType: make(map[string]int),
 		RecentApprovals: make([]Approval, 0, 100),
 		StartTime:       time.Now(),
 	}
-}
-
-// SetLogger sets the logger for error reporting.
-func (s *Stats) SetLogger(logger *slog.Logger) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.logger = logger
 }
 
 // SetLogFile sets a file to log approvals to.
@@ -100,7 +98,9 @@ func (s *Stats) RecordScan() {
 }
 
 // RecordApproval records an approval event.
-func (s *Stats) RecordApproval(paneID, promptType, line string, blocked bool) {
+func (s *Stats) RecordApproval(ctx context.Context, paneID, promptType, line string, blocked bool) {
+	logger := slogutil.LoggerFromContext(ctx, slog.Default())
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -130,15 +130,15 @@ func (s *Stats) RecordApproval(paneID, promptType, line string, blocked bool) {
 	if s.logFile != nil {
 		data, err := json.Marshal(approval)
 		if err != nil {
-			s.logger.Warn("failed to marshal approval for log", "error", err)
+			logger.Warn("failed to marshal approval for log", "error", err)
 			return
 		}
 		if _, err := s.logFile.Write(data); err != nil {
-			s.logger.Warn("failed to write approval to log file", "error", err)
+			logger.Warn("failed to write approval to log file", "error", err)
 			return
 		}
 		if _, err := s.logFile.WriteString("\n"); err != nil {
-			s.logger.Warn("failed to write newline to log file", "error", err)
+			logger.Warn("failed to write newline to log file", "error", err)
 		}
 	}
 }
