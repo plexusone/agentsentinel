@@ -1,3 +1,9 @@
+// Package detector provides regex-based detection of AI CLI tool approval prompts.
+// It identifies prompts from Claude Code, AWS Kiro, Codex CLI, Gemini CLI, and
+// other tools that request user confirmation before executing actions.
+//
+// The detector also identifies dangerous commands (rm -rf, sudo, curl|bash, etc.)
+// that should be blocked from auto-approval.
 package detector
 
 import (
@@ -17,22 +23,30 @@ const (
 	PromptConfirm
 )
 
-// Detection represents a detected tool prompt.
+// Detection represents a detected tool prompt with metadata.
 type Detection struct {
-	Type    PromptType
-	Line    string
-	PaneID  string
-	Blocked bool // true if this appears to be a dangerous command
-	Count   int  // number of pending prompts (for multi-subagent scenarios)
+	// Type categorizes the prompt (Allow, Approve, Proceed, etc.)
+	Type PromptType
+	// Line is the actual text that matched a detection pattern.
+	Line string
+	// PaneID is the tmux pane identifier (set by the watcher, not detector).
+	PaneID string
+	// Blocked is true if the surrounding text contains dangerous commands.
+	Blocked bool
+	// Count is the number of pending prompts (for multi-subagent scenarios like Kiro).
+	Count int
 }
 
-// Detector scans text for tool approval prompts.
+// Detector scans text for tool approval prompts using configurable regex patterns.
+// It maintains separate pattern sets for prompt detection and dangerous command detection.
 type Detector struct {
 	patterns       []*regexp.Regexp
 	dangerPatterns []*regexp.Regexp
 }
 
-// NewDetector creates a new prompt detector with default patterns.
+// NewDetector creates a new prompt detector with built-in patterns for
+// Claude Code, AWS Kiro, Codex CLI, Gemini CLI, and generic Y/n prompts.
+// Custom patterns can be added via AddPattern and AddDangerPattern.
 func NewDetector() *Detector {
 	return &Detector{
 		patterns: []*regexp.Regexp{
@@ -88,7 +102,10 @@ func NewDetector() *Detector {
 // kiroMultiPromptPattern matches Kiro's multi-subagent approval prompts
 var kiroMultiPromptPattern = regexp.MustCompile(`(?i)tool\s+use\s+\w+\s+requires\s+approval.*press\s+'y'\s+to\s+approve`)
 
-// Detect scans the given text for tool prompts.
+// Detect scans the given text for tool prompts, checking the last 30 lines
+// for matches against configured patterns. Returns nil if no prompt is found.
+// If a prompt is detected, the returned Detection includes the prompt type,
+// matched line, whether it's blocked (dangerous), and count of pending prompts.
 func (d *Detector) Detect(text string) *Detection {
 	lines := strings.Split(text, "\n")
 
@@ -190,7 +207,8 @@ func (d *Detector) isDangerous(text string) bool {
 	return false
 }
 
-// AddPattern adds a custom pattern for detection.
+// AddPattern adds a custom regex pattern for prompt detection.
+// Returns an error if the pattern is invalid.
 func (d *Detector) AddPattern(pattern string) error {
 	re, err := regexp.Compile(pattern)
 	if err != nil {
@@ -200,7 +218,9 @@ func (d *Detector) AddPattern(pattern string) error {
 	return nil
 }
 
-// AddDangerPattern adds a custom danger pattern.
+// AddDangerPattern adds a custom regex pattern for dangerous command detection.
+// Prompts containing text matching danger patterns will be blocked from auto-approval.
+// Returns an error if the pattern is invalid.
 func (d *Detector) AddDangerPattern(pattern string) error {
 	re, err := regexp.Compile(pattern)
 	if err != nil {
@@ -226,4 +246,12 @@ func (t PromptType) String() string {
 	default:
 		return "None"
 	}
+}
+
+// IsKiroPrompt checks if the line matches AWS Kiro CLI's approval prompt format.
+// Kiro prompts contain "tool use", "requires approval", and "press 'y' to approve".
+func IsKiroPrompt(line string) bool {
+	return strings.Contains(line, "tool use") &&
+		strings.Contains(line, "requires approval") &&
+		strings.Contains(line, "press 'y' to approve")
 }

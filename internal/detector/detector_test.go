@@ -235,3 +235,55 @@ func TestPromptType_String(t *testing.T) {
 		})
 	}
 }
+
+func TestIsKiroPrompt(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  bool
+	}{
+		{
+			name:  "Kiro prompt",
+			input: "tool use read requires approval, press 'y' to approve",
+			want:  true,
+		},
+		{
+			name:  "Kiro prompt with arrow",
+			input: "↳ tool use write requires approval, press 'y' to approve...",
+			want:  true,
+		},
+		{
+			name:  "Missing tool use",
+			input: "requires approval, press 'y' to approve",
+			want:  false,
+		},
+		{
+			name:  "Missing requires approval",
+			input: "tool use read, press 'y' to approve",
+			want:  false,
+		},
+		{
+			name:  "Missing press y",
+			input: "tool use read requires approval",
+			want:  false,
+		},
+		{
+			name:  "Claude Code prompt",
+			input: "Allow? (Y/n)",
+			want:  false,
+		},
+		{
+			name:  "Empty string",
+			input: "",
+			want:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := IsKiroPrompt(tt.input); got != tt.want {
+				t.Errorf("IsKiroPrompt(%q) = %v, want %v", tt.input, got, tt.want)
+			}
+		})
+	}
+}
