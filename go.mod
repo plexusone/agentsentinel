@@ -3,7 +3,7 @@ module github.com/plexusone/agentsentinel
 go 1.25.0
 
 require (
-	github.com/grokify/mogo v0.73.4
+	github.com/grokify/mogo v0.74.0
 	github.com/lmittmann/tint v1.1.3
 	github.com/spf13/cobra v1.10.2
 	gopkg.in/yaml.v3 v3.0.1
