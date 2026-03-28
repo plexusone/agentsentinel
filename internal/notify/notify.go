@@ -1,3 +1,5 @@
+// Package notify provides macOS notification support via osascript.
+// It implements the watcher.Notifier interface.
 package notify
 
 import (
@@ -6,7 +8,8 @@ import (
 	"strings"
 )
 
-// Notifier sends macOS notifications.
+// Notifier sends macOS notifications using osascript.
+// It implements the watcher.Notifier interface.
 type Notifier struct {
 	title   string
 	sound   bool

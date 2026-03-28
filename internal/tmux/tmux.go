@@ -1,3 +1,6 @@
+// Package tmux provides a Go interface to tmux terminal multiplexer.
+// It supports listing panes, capturing pane content, and sending keystrokes.
+// The Client type implements the watcher.TmuxClient interface.
 package tmux
 
 import (
@@ -9,7 +12,7 @@ import (
 	"time"
 )
 
-// Pane represents a tmux pane.
+// Pane represents a tmux pane with its identifiers.
 type Pane struct {
 	ID        string
 	SessionID string
@@ -17,7 +20,7 @@ type Pane struct {
 	Index     int
 }
 
-// Client provides tmux operations.
+// Client provides tmux operations and implements the watcher.TmuxClient interface.
 type Client struct {
 	session string // optional: filter to specific session
 }

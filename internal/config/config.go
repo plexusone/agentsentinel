@@ -1,3 +1,5 @@
+// Package config handles loading and saving AgentSentinel configuration from YAML files.
+// The default configuration path is ~/.agentsentinel.yaml.
 package config
 
 import (
@@ -9,7 +11,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Config holds the application configuration.
+// Config holds the application configuration loaded from ~/.agentsentinel.yaml.
 type Config struct {
 	// Watch settings
 	Watch WatchConfig `yaml:"watch"`
