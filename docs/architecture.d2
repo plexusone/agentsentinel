@@ -1,0 +1,144 @@
+# AgentSentinel Architecture
+# Renders to SVG via: d2 architecture.d2 architecture.svg
+
+direction: right
+
+title: AgentSentinel Architecture {
+  shape: text
+  near: top-center
+  style: {
+    font-size: 28
+    bold: true
+  }
+}
+
+# External Systems
+external: External Systems {
+  style.fill: "#f5f5f5"
+
+  tmux: tmux Server {
+    shape: cylinder
+    style.fill: "#4a9eff"
+    style.font-color: white
+  }
+
+  ai_clis: AI CLIs in tmux {
+    style.fill: "#e8f4e8"
+
+    kiro: AWS Kiro
+    claude: Claude Code
+    codex: Codex CLI
+    gemini: Gemini CLI
+  }
+
+  macos: macOS Notifications {
+    shape: document
+    style.fill: "#f0f0f0"
+  }
+
+  ai_clis -> tmux: runs in
+}
+
+# AgentSentinel Application
+app: AgentSentinel {
+  style.fill: "#fff3e0"
+
+  cli: CLI (cmd/) {
+    style.fill: "#ffe0b2"
+
+    watch: watch
+    status: status
+    config: config
+  }
+
+  internal: Internal Packages {
+    style.fill: "#e3f2fd"
+
+    detector: detector/ {
+      style.fill: "#bbdefb"
+    }
+
+    tmux_pkg: tmux/ {
+      style.fill: "#bbdefb"
+    }
+
+    config_pkg: config/ {
+      style.fill: "#bbdefb"
+    }
+
+    stats: stats/ {
+      style.fill: "#bbdefb"
+    }
+
+    notify: notify/ {
+      style.fill: "#bbdefb"
+    }
+  }
+}
+
+# Legend
+legend: {
+  style.fill: "#fafafa"
+  style.stroke-dash: 3
+
+  l1: "19 detection patterns" {
+    shape: text
+    style.font-size: 12
+  }
+  l2: "13 danger patterns" {
+    shape: text
+    style.font-size: 12
+  }
+  l3: "Blocks: rm -rf, sudo, curl|bash" {
+    shape: text
+    style.font-size: 12
+  }
+}
+
+# Main data flow
+external.tmux -> app.internal.tmux_pkg: "1. list-panes\n2. capture-pane" {
+  style.stroke: "#2196f3"
+  style.stroke-width: 2
+}
+
+app.internal.tmux_pkg -> app.internal.detector: "3. pane content" {
+  style.stroke: "#4caf50"
+}
+
+app.internal.detector -> app.internal.tmux_pkg: "4. prompt detected" {
+  style.stroke: "#ff9800"
+}
+
+app.internal.tmux_pkg -> external.tmux: "5. send-keys 'y'" {
+  style.stroke: "#f44336"
+  style.stroke-width: 2
+}
+
+# Notification flow
+app.internal.notify -> external.macos: "osascript" {
+  style.stroke: "#9c27b0"
+  style.stroke-dash: 3
+}
+
+# CLI to internal
+app.cli.watch -> app.internal.tmux_pkg: "scan loop" {
+  style.stroke: "#607d8b"
+}
+
+app.cli.watch -> app.internal.detector {
+  style.stroke: "#607d8b"
+}
+
+app.cli.watch -> app.internal.stats: "record" {
+  style.stroke: "#607d8b"
+  style.stroke-dash: 3
+}
+
+app.cli.watch -> app.internal.notify {
+  style.stroke: "#607d8b"
+  style.stroke-dash: 3
+}
+
+app.cli.config -> app.internal.config_pkg {
+  style.stroke: "#607d8b"
+}

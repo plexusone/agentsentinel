@@ -394,6 +394,10 @@ stats:
   log_file: ~/agentsentinel-approvals.log
 ```
 
+## Architecture
+
+![AgentSentinel Architecture](docs/architecture.svg)
+
 ## How It Works
 
 1. **Pane Discovery** - Lists all tmux panes via `tmux list-panes`
@@ -406,17 +410,90 @@ For **Kiro multi-subagent TUI**, the workflow is different:
 2. **TUI Navigation** - Sends `y` (approve) + `j` (down) to cycle through all items
 3. **Full Coverage** - Performs count+1 iterations to ensure all items are approved regardless of cursor position
 
-## Detected Patterns
+## Pattern Reference
 
-| Pattern | Example |
-|---------|---------|
-| `(Y/n)` | `Allow? (Y/n)` |
-| `[yes/no]` | `Continue? [yes/no]` |
-| `tool use ... requires approval` | Kiro CLI |
-| `press 'y' to approve` | Kiro CLI |
-| `Allow once` | Claude Code |
-| `Proceed?` | Codex CLI |
-| `Tool request` | Generic |
+### Built-in Detection Patterns
+
+AgentSentinel includes 19 built-in regex patterns for detecting approval prompts:
+
+| Category | Pattern | Matches |
+|----------|---------|---------|
+| **Generic Y/N** | `(?i)\(y/n\)\s*$` | `Allow? (Y/n)` |
+| | `(?i)\[y/n\]\s*$` | `Continue? [y/n]` |
+| | `(?i)\(yes/no\)\s*$` | `Confirm? (yes/no)` |
+| | `(?i)\[yes/no\]\s*$` | `Proceed? [yes/no]` |
+| **Tool Requests** | `(?i)allow\s*\?\s*\(y/n\)` | `Allow? (Y/n)` |
+| | `(?i)allow\s+tool` | `Allow tool execution` |
+| | `(?i)tool\s+request` | `Tool request pending` |
+| | `(?i)approve\s+tool` | `Approve tool use` |
+| | `(?i)proceed\s*\?` | `Proceed?` |
+| | `(?i)continue\s*\?\s*\(y/n\)` | `Continue? (Y/n)` |
+| | `(?i)execute\s*\?\s*\(y/n\)` | `Execute? (Y/n)` |
+| | `(?i)run\s+command\s*\?` | `Run command?` |
+| **Claude Code** | `(?i)allow\s+once` | `Allow once` |
+| | `(?i)allow\s+always` | `Allow always` |
+| **Codex CLI** | `(?i)sandbox\s+execution` | `Sandbox execution` |
+| **AWS Kiro** | `(?i)tool\s+use\s+\w+\s+requires\s+approval` | `tool use read requires approval` |
+| | `(?i)press\s+'y'\s+to\s+approve` | `press 'y' to approve` |
+| **Generic** | `(?i)permission\s+required` | `Permission required` |
+| | `(?i)confirm\s+action` | `Confirm action` |
+
+### Built-in Danger Patterns
+
+These patterns block auto-approval when detected (13 patterns):
+
+| Category | Pattern | Blocks |
+|----------|---------|--------|
+| **Destructive** | `(?i)rm\s+-rf` | `rm -rf /path` |
+| | `(?i)rm\s+-r\s+/` | `rm -r /` |
+| | `(?i)sudo\s+rm` | `sudo rm -rf` |
+| | `(?i)mkfs` | `mkfs.ext4 /dev/sda` |
+| | `(?i)dd\s+if=` | `dd if=/dev/zero of=/dev/sda` |
+| **Fork Bomb** | `(?i):\(\)\s*\{\s*:\|:\s*&\s*\}` | `:(){ :|:& };:` |
+| **Device Write** | `(?i)>\s*/dev/sd` | `> /dev/sda` |
+| **Permissions** | `(?i)chmod\s+-R\s+777\s+/` | `chmod -R 777 /` |
+| | `(?i)chown\s+-R.*\s+/` | `chown -R root /` |
+| **Remote Execute** | `(?i)curl.*\|\s*sh` | `curl url \| sh` |
+| | `(?i)curl.*\|\s*bash` | `curl url \| bash` |
+| | `(?i)wget.*\|\s*sh` | `wget url \| sh` |
+| | `(?i)wget.*\|\s*bash` | `wget url \| bash` |
+
+### Custom Patterns
+
+Add custom patterns in `~/.agentsentinel.yaml`:
+
+```yaml
+# Custom approval patterns (Go regex syntax)
+patterns:
+  - "(?i)deploy\\s+to\\s+production\\?"
+  - "(?i)apply\\s+changes\\?"
+  - "my-tool-prompt"
+
+# Custom danger patterns
+danger_patterns:
+  - "(?i)drop\\s+database"
+  - "(?i)truncate\\s+table"
+  - "(?i)delete\\s+from.*where\\s+1=1"
+```
+
+**Pattern Syntax:**
+- Uses Go's [regexp](https://pkg.go.dev/regexp/syntax) package (RE2 syntax)
+- `(?i)` makes the pattern case-insensitive
+- `\s+` matches one or more whitespace characters
+- `\s*` matches zero or more whitespace characters
+- `$` anchors to end of line
+- `\w+` matches one or more word characters
+- Escape special characters: `\?`, `\(`, `\)`, `\.`
+
+**Testing Patterns:**
+
+```bash
+# Test your patterns with the built-in test command
+agentsentinel test
+
+# Or test in dry-run mode with verbose output
+agentsentinel watch --dry-run -v
+```
 
 ## Troubleshooting
 
