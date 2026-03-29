@@ -44,6 +44,8 @@ nav:
       - Architecture: reference/architecture.md
   - Troubleshooting: troubleshooting.md
   - Development: development.md
+  - Releases:
+      - v0.2.0: releases/v0.2.0.md
 
 markdown_extensions:
   - admonition

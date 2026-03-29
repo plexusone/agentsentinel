@@ -7,6 +7,41 @@
   "maintainers": ["johncwang@gmail.com"],
   "releases": [
     {
+      "version": "v0.2.0",
+      "date": "2026-03-28",
+      "highlights": [
+        { "description": "Testable architecture with dependency injection via interfaces" },
+        { "description": "Comprehensive MkDocs documentation site with Material theme" },
+        { "description": "Context-based colored logging with configurable log levels" }
+      ],
+      "added": [
+        { "description": "`detector.IsKiroPrompt()` exported helper function for checking Kiro CLI prompt format", "commit": "5973e88" },
+        { "description": "`--level` flag for log level control (debug, info, warn, error)", "commit": "4e61f5f" },
+        { "description": "Colored log output via `github.com/lmittmann/tint`", "commit": "4e61f5f" },
+        { "description": "Context-based logging via `github.com/grokify/mogo/log/slogutil`", "commit": "4e61f5f" },
+        { "description": "MkDocs documentation site with Material theme, dark/light mode, and search", "commit": "788dd31" }
+      ],
+      "changed": [
+        { "description": "Extracted watcher logic from `cmd/watch.go` to `internal/watcher` package with dependency injection", "commit": "4e61f5f" },
+        { "description": "Added `TmuxClient`, `Notifier`, and `StatsRecorder` interfaces for testability", "commit": "4e61f5f" },
+        { "description": "Configurable `RecentWindow` and `CleanupWindow` for duplicate prevention", "commit": "4e61f5f" }
+      ],
+      "documentation": [
+        { "description": "MkDocs site with Getting Started, Usage, Reference, and Troubleshooting sections", "commit": "788dd31" },
+        { "description": "Architecture diagram (D2 source and SVG) showing package structure and data flow", "commit": "6fbc46f" },
+        { "description": "Comprehensive pattern reference table (19 detection + 13 danger patterns)", "commit": "6fbc46f" },
+        { "description": "CLAUDE.md project guidelines for AI agents", "commit": "85d10be" },
+        { "description": "Godoc comments for all exported types and functions in internal packages", "commit": "8da8ac3" }
+      ],
+      "tests": [
+        { "description": "Unit tests for `internal/watcher` package (85.3% coverage)", "commit": "4e61f5f" },
+        { "description": "Unit tests for `internal/config` package (73.9% coverage)", "commit": "2c2cd3d" },
+        { "description": "Unit tests for `internal/stats` package (88.7% coverage)", "commit": "2c2cd3d" },
+        { "description": "Unit tests for `internal/notify` package (50.0% coverage)", "commit": "2c2cd3d" },
+        { "description": "TestIsKiroPrompt test cases for detector", "commit": "5973e88" }
+      ]
+    },
+    {
       "version": "v0.1.0",
       "date": "2026-03-07",
       "highlights": [
