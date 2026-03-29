@@ -51,3 +51,6 @@ debug.log
 .env
 .env.local
 .envrc
+
+# MkDocs
+site/
