@@ -1,11 +1,5 @@
 # AgentSentinel
 
-[![Go CI][go-ci-svg]][go-ci-url]
-[![Go Lint][go-lint-svg]][go-lint-url]
-[![Go Report Card][goreport-svg]][goreport-url]
-[![Docs][docs-godoc-svg]][docs-godoc-url]
-[![License][license-svg]][license-url]
-
 **Auto-approve tool requests for AI coding CLIs running in tmux.**
 
 AgentSentinel monitors tmux panes for tool approval prompts from AI coding assistants and automatically responds with `y` to approve them. Designed for macOS with iTerm2 and tmux.
@@ -56,14 +50,3 @@ AgentSentinel monitors tmux panes for tool approval prompts from AI coding assis
 ## License
 
 MIT
-
-[go-ci-svg]: https://github.com/plexusone/agentsentinel/actions/workflows/go-ci.yaml/badge.svg?branch=main
-[go-ci-url]: https://github.com/plexusone/agentsentinel/actions/workflows/go-ci.yaml
-[go-lint-svg]: https://github.com/plexusone/agentsentinel/actions/workflows/go-lint.yaml/badge.svg?branch=main
-[go-lint-url]: https://github.com/plexusone/agentsentinel/actions/workflows/go-lint.yaml
-[goreport-svg]: https://goreportcard.com/badge/github.com/plexusone/agentsentinel
-[goreport-url]: https://goreportcard.com/report/github.com/plexusone/agentsentinel
-[docs-godoc-svg]: https://pkg.go.dev/badge/github.com/plexusone/agentsentinel
-[docs-godoc-url]: https://pkg.go.dev/github.com/plexusone/agentsentinel
-[license-svg]: https://img.shields.io/badge/license-MIT-blue.svg
-[license-url]: https://github.com/plexusone/agentsentinel/blob/master/LICENSE
