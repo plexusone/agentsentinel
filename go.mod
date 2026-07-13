@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/grokify/mogo v0.74.6
-	github.com/lmittmann/tint v1.1.3
+	github.com/lmittmann/tint v1.2.0
 	github.com/spf13/cobra v1.10.2
 	gopkg.in/yaml.v3 v3.0.1
 )
